@@ -1,3 +1,4 @@
+// Load everything when it's ready
 $(document).ready(function () {
   // OpenWeather API Key
   const apiKey = "ece65a809c550038c7bb3d98710f156b";
@@ -12,30 +13,12 @@ $(document).ready(function () {
   const currentWindSpan = document.getElementById("current-wind-span");
   const currentUvSpan = document.getElementById("current-uv-span");
   const weatherCards = document.getElementById("weather-cards");
-
-  let searchedCities = [];
-
-  //   function storeCities() {
-  //     localStorage.setItem("serchedCities", JSON.stringify(searchedCities));
-  //   }
-
-  //   function loadCities() {
-  //     const storedCities = JSON.parse(localStorage.getItem("searchedCities"));
-  //     if (storedCities !== "") {
-  //       searchedCities = storedCities;
-  //     }
-  //   }
-
-  $.getJSON(
-    "https://api.openweathermap.org/data/2.5/weather?q=Perth&appid=ece65a809c550038c7bb3d98710f156b",
-    function (data) {}
-  );
+  const mainWeatherIcon = document.getElementById("weather-icon");
 
   function getCityWeather(city) {
     const url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}`;
 
     return fetch(url).then(function (response) {
-      console.log(response);
       return response.json();
     });
   }
@@ -73,7 +56,7 @@ $(document).ready(function () {
         // HUMIDITY
         currentHumiditySpan.textContent = data.main.humidity + "%";
         // WIND
-        currentWindSpan.textContent = data.wind.speed + " m/h";
+        currentWindSpan.textContent = data.wind.speed + " m/s";
         // UV INDEX
         currentUvSpan.textContent = data;
 
@@ -97,23 +80,20 @@ $(document).ready(function () {
           currentUvSpan.setAttribute("class", "high");
         }
         if (uv >= 8 && uv <= 11) {
-          currentUvSpan.setAttribute("class", "very high");
+          currentUvSpan.setAttribute("class", "very-high");
         }
         if (uv > 11) {
           currentUvSpan.setAttribute("class", "extreme");
         }
 
-        const next5Days = oneCallData.daily.slice(0, 6);
+        const next5Days = oneCallData.daily.slice(0, 5);
         // reset the data so we dont make more than 5 days
         weatherCards.textContent = "";
-        // start the loop at 1 to ignore the current day already being displayed
         for (let i = 0; i < next5Days.length; i++) {
           const forecast = next5Days[i];
-          // use moment to convert unix into human time
 
           const col = createWeatherCol(
             forecast.dt,
-            "",
             forecast.temp.day,
             forecast.humidity,
             forecast.wind_speed,
@@ -124,7 +104,7 @@ $(document).ready(function () {
       });
   });
 
-  function createWeatherCol(date, icon, temp, humidity, wind) {
+  function createWeatherCol(date, temp, humidity, wind, icon) {
     const col = document.createElement("div");
     col.setAttribute("class", "col-2 text-center col-5");
 
@@ -143,15 +123,18 @@ $(document).ready(function () {
     //format unix date to days
     dateHeading.textContent = moment.unix(date).add(1, "d").format("dddd");
 
-    //moment.unix(date).format("dddd");
-
-    // input icon
+    // input icons
     const iconEl = document.createElement("img");
     iconEl.setAttribute(
       "src",
       `http://openweathermap.org/img/wn/` + icon + `.png`
     );
     cardBody.appendChild(iconEl);
+
+    mainWeatherIcon.setAttribute(
+      "src",
+      `http://openweathermap.org/img/wn/` + icon + `.png`
+    );
 
     const p = document.createElement("p");
     cardBody.appendChild(p);
