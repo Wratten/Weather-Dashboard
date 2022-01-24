@@ -14,6 +14,10 @@ $(document).ready(function () {
   const currentUvSpan = document.getElementById("current-uv-span");
   const weatherCards = document.getElementById("weather-cards");
   const mainWeatherIcon = document.getElementById("weather-icon");
+  const cityList = document.getElementById("city-list");
+  const results = document.querySelector(".results");
+
+  var pastSearches = [];
 
   function getCityWeather(city) {
     const url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}`;
@@ -35,12 +39,51 @@ $(document).ready(function () {
     return kelvin - 273.15;
   }
 
+  var retrievedSearches = localStorage.getItem("pastSearches");
+  var pastCityParsed = JSON.parse(retrievedSearches);
+  const pastCity = document.createElement("p");
+  pastCity.textContent = pastSearches;
+  cityList.appendChild(pastCity);
+
+  console.log(pastCityParsed);
+  console.log(localStorage);
+
+  function displaySearchHistory() {
+    for (i = 0; i < pastCityParsed.length; i++) {
+      const historyItem = document.createElement("input");
+      historyItem.setAttribute("type", "text");
+      historyItem.setAttribute("readonly", true);
+      historyItem.setAttribute("class", "form-control d-block bg-white");
+      historyItem.setAttribute("value", pastCityParsed[i]);
+      historyItem.addEventListener("click", function () {
+        getCityWeather(historyItem.value);
+      });
+      cityList.append(historyItem);
+    }
+  }
   // When a user searches for a city
   searchForm.addEventListener("submit", function (event) {
     // stop form from reloading page
     event.preventDefault();
+
     // create city as the value the user searches for
     const city = cityInput.value;
+
+    // store items in local storage array
+    if (localStorage["pastSearches"]) {
+      pastSearches = JSON.parse(localStorage["pastSearches"]);
+    }
+    if (pastSearches.indexOf(city) == -1) {
+      //insert new element at the start of array
+      pastSearches.unshift(city);
+      // if the array is longer than 5 itmes
+      if (pastSearches.length > 5) {
+        // take one off the end
+        pastSearches.pop();
+      }
+      localStorage["pastSearches"] = JSON.stringify(pastSearches);
+    }
+
     // get the data from the url using the searched city and create a promise to
     getCityWeather(city)
       .then(function (data) {
@@ -60,8 +103,7 @@ $(document).ready(function () {
         // UV INDEX
         currentUvSpan.textContent = data;
 
-        // call the one api to get coordinates for the uv index
-        console.log(oneCall);
+        // return the data
         return oneCall(data.coord.lon, data.coord.lat);
       })
       .then(function (oneCallData) {
@@ -70,7 +112,7 @@ $(document).ready(function () {
         currentUvSpan.textContent = uv;
 
         //http://www.bom.gov.au/uv/index.shtml UV Index
-        if (uv < 3) {
+        if (uv == 0 || uv < 3) {
           currentUvSpan.setAttribute("class", "low");
         }
         if (uv < 5) {
@@ -104,6 +146,7 @@ $(document).ready(function () {
       });
   });
 
+  // make a function to create weather cards for 5 day forecast
   function createWeatherCol(date, temp, humidity, wind, icon) {
     const col = document.createElement("div");
     col.setAttribute("class", "col-2 text-center col-5");
@@ -162,4 +205,5 @@ $(document).ready(function () {
 
     return col;
   }
+  displaySearchHistory();
 });
