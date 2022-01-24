@@ -3,18 +3,26 @@ body {
 }
 
 .low {
-  color: greenyellow;
+  background-color: greenyellow;
 }
 
 .moderate {
-  color: gold;
+  background-color: rgb(255, 233, 108);
 }
 .high {
-  color: goldenrod;
+  background-color: rgb(218, 100, 32);
 }
 .veryhigh {
-  color: red;
+  background-color: red;
 }
 .extreme {
-  color: purple;
+  background-color: purple;
+}
+
+.button {
+  cursor: pointer;
+}
+
+ul {
+  padding: 0;
 }

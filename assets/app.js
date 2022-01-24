@@ -3,6 +3,7 @@ $(document).ready(function () {
   // OpenWeather API Key
   const apiKey = "ece65a809c550038c7bb3d98710f156b";
 
+  // Define html elements
   const searchForm = document.getElementById("form-search");
   const cityInput = document.getElementById("city-input");
 
@@ -15,10 +16,16 @@ $(document).ready(function () {
   const weatherCards = document.getElementById("weather-cards");
   const mainWeatherIcon = document.getElementById("weather-icon");
   const cityList = document.getElementById("city-list");
-  const results = document.querySelector(".results");
+  const clearHistoryButton = document.getElementById("clear-history-button");
 
+  // Initialize array to hold past searches
   var pastSearches = [];
 
+  // Handle data from localstorage
+  var retrievedSearches = localStorage.getItem("pastSearches");
+  var pastCityParsed = JSON.parse(retrievedSearches);
+
+  // Create function that calls data from api
   function getCityWeather(city) {
     const url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}`;
 
@@ -27,6 +34,7 @@ $(document).ready(function () {
     });
   }
 
+  // Create function that calls data from api
   function oneCall(lon, lat) {
     const url = `https://api.openweathermap.org/data/2.5/onecall?lat=${lat}&lon=${lon}&appid=${apiKey}`;
 
@@ -35,32 +43,115 @@ $(document).ready(function () {
     });
   }
 
+  // Create function that converts kelvin temp to celcius
   function kelvinToCelcius(kelvin) {
     return kelvin - 273.15;
   }
 
-  var retrievedSearches = localStorage.getItem("pastSearches");
-  var pastCityParsed = JSON.parse(retrievedSearches);
-  const pastCity = document.createElement("p");
-  pastCity.textContent = pastSearches;
-  cityList.appendChild(pastCity);
+  // Create function that displays the weather on the page
+  function displayWeather(city) {
+    // get the data
+    getCityWeather(city)
+      // when data is recieved
+      .then(function (data) {
+        // update the weather details on page
+        chosenCitySpan.textContent = "Current Weather in " + data.name;
+        // TODAYS DATE
+        dateTodayElement.textContent = moment
+          .unix(data.dt)
+          .format("MMMM Do, YYYY");
+        // TEMPERATURE
+        currentTempSpan.textContent =
+          kelvinToCelcius(data.main.temp).toFixed(2) + "°C";
+        // HUMIDITY
+        currentHumiditySpan.textContent = data.main.humidity + "%";
+        // WIND
+        currentWindSpan.textContent = data.wind.speed + " m/s";
+        // UV INDEX
+        currentUvSpan.textContent = data;
 
-  console.log(pastCityParsed);
-  console.log(localStorage);
+        return oneCall(data.coord.lon, data.coord.lat);
+      })
+      // Get data from other api
+      // when recieved
+      .then(function (oneCallData) {
+        // create a variable that is the uv number from the data
+        const uv = oneCallData.current.uvi;
 
-  function displaySearchHistory() {
-    for (i = 0; i < pastCityParsed.length; i++) {
-      const historyItem = document.createElement("input");
-      historyItem.setAttribute("type", "text");
-      historyItem.setAttribute("readonly", true);
-      historyItem.setAttribute("class", "form-control d-block bg-white");
-      historyItem.setAttribute("value", pastCityParsed[i]);
-      historyItem.addEventListener("click", function (event) {
-        getCityWeather(historyItem.value);
+        currentUvSpan.textContent = uv;
+
+        //http://www.bom.gov.au/uv/index.shtml UV Index
+        // apply the correct colour class based on the uv index
+        if (uv < 3) {
+          currentUvSpan.setAttribute("class", "low");
+        }
+        if (uv < 5) {
+          currentUvSpan.setAttribute("class", "moderate");
+        }
+        if (uv >= 5 && uv <= 8) {
+          currentUvSpan.setAttribute("class", "high");
+        }
+        if (uv >= 8 && uv <= 11) {
+          currentUvSpan.setAttribute("class", "very-high");
+        }
+        if (uv > 11) {
+          currentUvSpan.setAttribute("class", "extreme");
+        }
+
+        // Get only 5 days from the 7 day data api call
+        const next5Days = oneCallData.daily.slice(0, 5);
+        // reset the cards text content
+        weatherCards.textContent = "";
+        //for loop that
+        for (let i = 0; i < next5Days.length; i++) {
+          const forecast = next5Days[i];
+
+          // creates the weather cards
+          const col = createWeatherCol(
+            forecast.dt,
+            forecast.temp.day,
+            forecast.humidity,
+            forecast.wind_speed,
+            forecast.weather[0].icon
+          );
+          // and appends them
+          weatherCards.appendChild(col);
+        }
       });
-      cityList.append(historyItem);
+  }
+
+  // Function that displays the search history
+  function displaySearchHistory() {
+    // if there is anything in local storage
+    if (pastCityParsed) {
+      // loop through the array
+      for (i = 0; i < pastCityParsed.length; i++) {
+        // create the last searched cities list
+        const historyItem = document.createElement("input");
+        historyItem.setAttribute("type", "text");
+        historyItem.setAttribute("readonly", true);
+        historyItem.setAttribute(
+          "class",
+          "form-control d-block bg-white button"
+        );
+        historyItem.setAttribute("value", pastCityParsed[i]);
+        // on click of the displayed searched item
+        historyItem.addEventListener("click", function (event) {
+          // display the weather using the value of the item
+          displayWeather(historyItem.value);
+        });
+        //append them
+        cityList.append(historyItem);
+      }
     }
   }
+
+  // Make the clear history button... clear history?
+  clearHistoryButton.addEventListener("click", function () {
+    localStorage.clear();
+    location.reload();
+  });
+
   // When a user searches for a city
   searchForm.addEventListener("submit", function (event) {
     // stop form from reloading page
@@ -68,6 +159,9 @@ $(document).ready(function () {
 
     // create city as the value the user searches for
     const city = cityInput.value;
+
+    // display the weather of the city searched
+    displayWeather(city);
 
     // store items in local storage array
     if (localStorage["pastSearches"]) {
@@ -84,66 +178,7 @@ $(document).ready(function () {
       localStorage["pastSearches"] = JSON.stringify(pastSearches);
     }
 
-    // get the data from the url using the searched city and create a promise to
-    getCityWeather(city)
-      .then(function (data) {
-        // update the weather details on page using the data
-        chosenCitySpan.textContent = "Current Weather in " + data.name;
-        // TODAYS DATE
-        dateTodayElement.textContent = moment
-          .unix(data.dt)
-          .format("MMMM Do, YYYY");
-        // TEMPERATURE
-        currentTempSpan.textContent =
-          kelvinToCelcius(data.main.temp).toFixed(2) + "°C";
-        // HUMIDITY
-        currentHumiditySpan.textContent = data.main.humidity + "%";
-        // WIND
-        currentWindSpan.textContent = data.wind.speed + " m/s";
-        // UV INDEX
-        currentUvSpan.textContent = data;
-
-        // return the data
-        return oneCall(data.coord.lon, data.coord.lat);
-      })
-      .then(function (oneCallData) {
-        const uv = oneCallData.current.uvi;
-
-        currentUvSpan.textContent = uv;
-
-        //http://www.bom.gov.au/uv/index.shtml UV Index
-        if (uv == 0 || uv < 3) {
-          currentUvSpan.setAttribute("class", "low");
-        }
-        if (uv < 5) {
-          currentUvSpan.setAttribute("class", "moderate");
-        }
-        if (uv >= 5 && uv <= 8) {
-          currentUvSpan.setAttribute("class", "high");
-        }
-        if (uv >= 8 && uv <= 11) {
-          currentUvSpan.setAttribute("class", "very-high");
-        }
-        if (uv > 11) {
-          currentUvSpan.setAttribute("class", "extreme");
-        }
-
-        const next5Days = oneCallData.daily.slice(0, 5);
-        // reset the data so we dont make more than 5 days
-        weatherCards.textContent = "";
-        for (let i = 0; i < next5Days.length; i++) {
-          const forecast = next5Days[i];
-
-          const col = createWeatherCol(
-            forecast.dt,
-            forecast.temp.day,
-            forecast.humidity,
-            forecast.wind_speed,
-            forecast.weather[0].icon
-          );
-          weatherCards.appendChild(col);
-        }
-      });
+    cityInput.value = "";
   });
 
   // make a function to create weather cards for 5 day forecast
@@ -205,5 +240,6 @@ $(document).ready(function () {
 
     return col;
   }
+  // display search history on load
   displaySearchHistory();
 });
