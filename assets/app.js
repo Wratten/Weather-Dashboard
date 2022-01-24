@@ -55,7 +55,7 @@ $(document).ready(function () {
       historyItem.setAttribute("readonly", true);
       historyItem.setAttribute("class", "form-control d-block bg-white");
       historyItem.setAttribute("value", pastCityParsed[i]);
-      historyItem.addEventListener("click", function () {
+      historyItem.addEventListener("click", function (event) {
         getCityWeather(historyItem.value);
       });
       cityList.append(historyItem);
