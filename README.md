@@ -1,4 +1,4 @@
-# 📔 Weather-Dashboard
+# ⛅ Weather-Dashboard
 
 A website made using HTML, CSS, Bootstrap, JS, Jquery, Moment JS & the Open Weather Api with the purpose of being able to search for a city and have the current days weather be displayed, along side a 5-day forecast. The user should also be able to have the previous searches saved and act as a quick link to display that cities weather again upon click.
 
